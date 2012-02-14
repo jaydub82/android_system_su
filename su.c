@@ -37,6 +37,7 @@
 
 #include <private/android_filesystem_config.h>
 #include <cutils/log.h>
+#include <cutils/properties.h>
 
 #include "su.h"
 
@@ -315,7 +316,8 @@ int main(int argc, char *argv[])
 {
     struct stat st;
     int socket_serv_fd, fd;
-    char buf[64], *shell = NULL, *result;
+    char buf[64], *shell = NULL, *result, debuggable[PROPERTY_VALUE_MAX];
+    char enabled[PROPERTY_VALUE_MAX], build_type[PROPERTY_VALUE_MAX];
     int c, dballow;
     mode_t orig_umask;
     struct option long_opts[] = {
@@ -388,7 +390,30 @@ int main(int argc, char *argv[])
         deny();
     }
 
+    property_get("ro.debuggable", debuggable, "0");
+    property_get("persist.sys.root_access", enabled, "1");
+    property_get("ro.build.type", build_type, "");
+
     orig_umask = umask(027);
+
+    // only allow su on debuggable builds
+    if (strcmp("1", debuggable) != 0) {
+        LOGE("Root access is disabled on non-debug builds");
+        deny();
+    }
+
+    // enforce persist.sys.root_access on non-eng builds
+    if (strcmp("eng", build_type) != 0 &&
+            (atoi(enabled) & 1) != 1 ) {
+        LOGE("Root access is disabled by system setting - enable it under settings -> developer options");
+        deny();
+    }
+
+    // disallow su in a shell if appropriate
+    if (su_from.uid == AID_SHELL && (atoi(enabled) == 1)) {
+        LOGE("Root access is disabled by a system setting - enable it under settings -> developer options");
+        deny();
+    }
 
     if (su_from.uid == AID_ROOT || su_from.uid == AID_SHELL)
         allow(shell, orig_umask);
