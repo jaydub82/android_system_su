@@ -18,26 +18,20 @@
 #ifndef SU_h 
 #define SU_h 1
 
-#define REQUESTOR "com.noshufou.android.su"
-#define REQUESTOR_DATA_PATH "/data/data/" REQUESTOR
-#define REQUESTOR_CACHE_PATH "/dev/" REQUESTOR
+#define REQUESTOR_DATA_PATH "/data/data/com.noshufou.android.su"
+#define REQUESTOR_CACHE_PATH REQUESTOR_DATA_PATH "/cache"
 
 #define REQUESTOR_DATABASES_PATH REQUESTOR_DATA_PATH "/databases"
 #define REQUESTOR_DATABASE_PATH REQUESTOR_DATABASES_PATH "/permissions.sqlite"
 
 #define DEFAULT_COMMAND "/system/bin/sh"
 
-#ifdef SU_LEGACY_BUILD
-#define VERSION_EXTRA	"l"
-#else
-#define VERSION_EXTRA	""
-#endif
+#define SOCKET_PATH_TEMPLATE REQUESTOR_CACHE_PATH "/.socketXXXXXX"
 
-#define VERSION "3.1" VERSION_EXTRA
-#define VERSION_CODE 16
+#define VERSION "3.0.3.2"
+#define VERSION_CODE 15
 
 #define DATABASE_VERSION 6
-#define PROTO_VERSION 0
 
 struct su_initiator {
     pid_t pid;
@@ -56,8 +50,6 @@ enum {
     DB_DENY,
     DB_ALLOW
 };
-
-extern int database_check(struct su_initiator*, struct su_request*);
 
 extern int send_intent(struct su_initiator *from, struct su_request *to, const char *socket_path, int allow, int type);
 

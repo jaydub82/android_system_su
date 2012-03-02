@@ -17,15 +17,9 @@
 
 #include <unistd.h>
 #include <android_runtime/ActivityManager.h>
-#ifdef SU_LEGACY_BUILD
-#include <utils/IBinder.h>
-#include <utils/IServiceManager.h>
-#include <utils/Parcel.h>
-#else
 #include <binder/IBinder.h>
 #include <binder/IServiceManager.h>
 #include <binder/Parcel.h>
-#endif
 #include <utils/String8.h>
 #include <assert.h>
 
@@ -76,19 +70,19 @@ int send_intent(struct su_initiator *from, struct su_request *to, const char *so
         data.writeString16(NULL, 0); /* package name - DONUT ONLY, NOT IN CUPCAKE. */
     }
     data.writeString16(NULL, 0); /* ComponentName - package */
+    data.writeInt32(0); /* Categories - size */
     if (sdk_version >= 7) {
         // added in eclair rev 7
-        data.writeInt32(0); /* Rect - the bounds of the sender */
+        data.writeInt32(0);
     }
-    data.writeInt32(0); /* Categories - size */
     if (sdk_version >= 15) {
         // added in IceCreamSandwich 4.0.3
         data.writeInt32(0); /* Selector */
     }
     { /* Extras */
         data.writeInt32(-1); /* dummy, will hold length */
-        data.writeInt32(0x4C444E42); // 'B' 'N' 'D' 'L'
         int oldPos = data.dataPosition();
+        data.writeInt32(0x4C444E42); // 'B' 'N' 'D' 'L'
         { /* writeMapInternal */
             data.writeInt32(7); /* writeMapInternal - size */
 
@@ -128,12 +122,14 @@ int send_intent(struct su_initiator *from, struct su_request *to, const char *so
             data.writeInt32(VERSION_CODE);
         }
         int newPos = data.dataPosition();
-        data.setDataPosition(oldPos - 8);
+        data.setDataPosition(oldPos - 4);
         data.writeInt32(newPos - oldPos); /* length */
         data.setDataPosition(newPos);
     }
 
     data.writeString16(NULL, 0); /* resolvedType */
+
+    data.writeInt32(-1); /* Not sure what this is for, but it prevents a warning */
 
     data.writeStrongBinder(NULL); /* resultTo */
     data.writeInt32(-1); /* resultCode */
@@ -144,6 +140,7 @@ int send_intent(struct su_initiator *from, struct su_request *to, const char *so
     data.writeString16(String16("com.noshufou.android.su.RESPOND")); /* perm */
     data.writeInt32(0); /* serialized */
     data.writeInt32(0); /* sticky */
+    data.writeInt32(-1);
     
     status_t ret = am->transact(BROADCAST_INTENT_TRANSACTION, data, &reply);
     if (ret < START_SUCCESS) return -1;
